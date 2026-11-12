@@ -35,6 +35,14 @@ function broadcast() {
   owncast.sse.send("room", "users", { users: currentUsers() });
 }
 
+// Owncast can announce that someone left a moment before it drops their
+// connection from its list, so a list sent at that instant may still include
+// them. Send it again shortly after to be sure they are gone.
+function broadcastSoon() {
+  broadcast();
+  owncast.timer.setTimeout(broadcast, 2000);
+}
+
 // ---- Helpers ---------------------------------------------------------------
 
 function json(status, data) {
@@ -285,7 +293,7 @@ module.exports = definePlugin({
     broadcast();
   },
   onChatUserParted() {
-    broadcast();
+    broadcastSoon();
   },
   onChatUserRenamed() {
     broadcast();
