@@ -1,0 +1,4 @@
+node_modules/
+.owncast-build/
+*.ocpkg
+chat-tools.js

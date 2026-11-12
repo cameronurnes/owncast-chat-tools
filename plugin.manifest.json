@@ -1,0 +1,70 @@
+{
+  "api": "1",
+  "name": "Chat Tools",
+  "slug": "chat-tools",
+  "version": "0.7.0",
+  "description": "Extras for Owncast chat: a live list of who is in chat, inline image previews, a GIF picker and image uploads.",
+  "category": "other",
+  "permissions": [
+    "chat.history",
+    "users.read",
+    "http.serve",
+    "http.sse",
+    "ui.modify",
+    "storage.fs",
+    "storage.upload"
+  ],
+  "scripts": [
+    "client.js"
+  ],
+  "styles": [
+    "client.css"
+  ],
+  "config": {
+    "inlineImages": {
+      "type": "boolean",
+      "default": true,
+      "description": "Preview image and GIF links that people paste into chat from other sites. GIFs from the search and uploaded images are always shown, whatever this is set to."
+    },
+    "gifSearch": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the GIF search button in the chat box. Also needs a GIPHY API key below."
+    },
+    "allowUploads": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the image upload button in the chat box, so people in chat can upload an image or GIF from their device."
+    },
+    "giphyApiKey": {
+      "type": "string",
+      "default": "",
+      "description": "GIPHY API key for GIF search. The key is sent to viewers' browsers, as GIPHY requires searches to come from the browser."
+    },
+    "giphyRating": {
+      "type": "string",
+      "default": "pg-13",
+      "description": "Maximum GIPHY content rating for search results: g, pg, pg-13 or r."
+    },
+    "maxUploadMB": {
+      "type": "number",
+      "default": 10,
+      "description": "Largest upload allowed, in megabytes."
+    },
+    "uploadsPerHour": {
+      "type": "number",
+      "default": 20,
+      "description": "How many uploads each person may make per hour."
+    },
+    "uploadRetentionDays": {
+      "type": "number",
+      "default": 30,
+      "description": "Days to keep uploaded images before they are removed. Set to 0 to keep them forever."
+    },
+    "imageHosts": {
+      "type": "string",
+      "default": "",
+      "description": "Optional comma-separated list of hosts allowed for inline previews (e.g. i.imgur.com, media.giphy.com). Leave empty to allow any https image link."
+    }
+  }
+}
