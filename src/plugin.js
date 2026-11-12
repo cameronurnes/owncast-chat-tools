@@ -311,7 +311,21 @@ module.exports = definePlugin({
         giphyRating: ["g", "pg", "pg-13", "r"].includes(rating) ? rating : "pg-13",
         allowUploads: owncast.config.get("allowUploads", true) !== false,
         maxUploadBytes: Math.floor(numberSetting("maxUploadMB", 10, 0.1, 50) * 1024 * 1024),
+        requireName: owncast.config.get("requireName", false) === true,
         signedIn: !!(req.user && req.user.id),
+      });
+    }
+    // Tells the viewer page whether this person still has the random name
+    // Owncast gave them. Owncast records every name a person has had, so a
+    // single entry means they have never chosen one.
+    if (req.method === "GET" && req.path === "/api/me") {
+      const u = req.user;
+      if (!u || !u.id) return json(200, { known: false, needsName: false });
+      const renamed = Array.isArray(u.previousNames) && u.previousNames.length > 1;
+      return json(200, {
+        known: true,
+        name: u.displayName || "",
+        needsName: !renamed && !u.isAuthenticated,
       });
     }
     if (req.method === "POST" && req.path.indexOf("/api/upload/") === 0) {

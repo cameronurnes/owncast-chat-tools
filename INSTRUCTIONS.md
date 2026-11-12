@@ -46,6 +46,13 @@ An image button beside it lets anyone in chat upload a GIF, PNG, JPEG or WebP fr
 - Uploads are removed after **uploadRetentionDays** (default 30; 0 keeps them forever). Owncast does not let a plugin delete a published file, so an expired image is replaced by a tiny placeholder, which frees the space, and chat shows "Image expired" in its place.
 - Set **allowUploads** to off to remove the button.
 
+### Pick a name before chatting
+
+Off by default. With **requireName** on, viewers who still have the random name Owncast gave them are asked to choose their own when they click into the chat box, or use the GIF or image buttons. They can dismiss the prompt with "Not now" and keep watching and reading chat; it comes back the next time they go to type.
+
+- People who have already changed their name, or who are signed in, are never asked.
+- This is a prompt in the viewer's browser, not a server-side block, so it is a nudge for a friendly room and not a moderation tool.
+
 ## Permissions
 
 - **chat.history**: read the list of clients connected to chat.

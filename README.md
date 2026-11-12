@@ -6,6 +6,7 @@ An [Owncast](https://owncast.online) plugin with extras for chat. Requires Ownca
 - **Inline images:** image and GIF links posted in chat show as previews, and open full size in an overlay on the same page.
 - **GIF search:** a GIPHY search button inside the chat box (needs a GIPHY API key).
 - **Image upload:** a button inside the chat box to upload a GIF, PNG, JPEG or WebP of up to 10 MB.
+- **Pick a name before chatting (optional):** asks viewers with an auto-generated name to choose one before typing, without blocking the stream.
 
 Each feature has its own switch on the plugin's settings page. See [INSTRUCTIONS.md](INSTRUCTIONS.md) for what admins need to know, including what each permission is for.
 

@@ -2,7 +2,7 @@
   "api": "1",
   "name": "Chat Tools",
   "slug": "chat-tools",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Extras for Owncast chat: a live list of who is in chat, inline image previews, a GIF picker and image uploads.",
   "category": "other",
   "permissions": [
@@ -35,6 +35,11 @@
       "type": "boolean",
       "default": true,
       "description": "Show the image upload button in the chat box, so people in chat can upload an image or GIF from their device."
+    },
+    "requireName": {
+      "type": "boolean",
+      "default": false,
+      "description": "Ask viewers who still have an auto-generated name to pick their own before they can type in chat. Watching the stream and reading chat are never blocked."
     },
     "giphyApiKey": {
       "type": "string",

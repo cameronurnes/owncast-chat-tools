@@ -127,7 +127,7 @@
   // image, add a preview under the link. Nothing is sent to the server and
   // the chat message itself is unchanged.
   var previewsActive = false;
-  var settings = { inlineImages: false, imageHosts: [], giphyApiKey: "", giphyRating: "pg-13", allowUploads: false, maxUploadBytes: 0 };
+  var settings = { inlineImages: false, imageHosts: [], giphyApiKey: "", giphyRating: "pg-13", allowUploads: false, maxUploadBytes: 0, requireName: false };
   var IMAGE_EXT = /\.(gif|png|jpe?g|webp|avif)$/i;
   // GIF services whose direct media links have no file extension.
   var MEDIA_HOSTS = /^(media\d*\.giphy\.com|i\.giphy\.com|media\d*\.tenor\.com|c\.tenor\.com)$/i;
@@ -283,6 +283,7 @@
   function sendToChat(text) {
     var box = document.getElementById("chat-input-content-editable");
     if (!box) return false;
+    if (needsName) { openNamePrompt(); return true; }
     box.focus();
     var sel = window.getSelection();
     if (sel) { sel.selectAllChildren(box); sel.collapseToEnd(); }
@@ -574,11 +575,140 @@
       uploadButton = makeBarButton("image", "Upload an image or GIF");
       uploadButton.addEventListener("click", function () { setStatus(""); chooser.click(); });
     }
-    if (!gifButton && !uploadButton) return;
+    if (!gifButton && !uploadButton && !settings.requireName) return;
     document.body.appendChild(floater);
     placeToolbar();
     window.addEventListener("resize", placeToolbar);
     setInterval(placeToolbar, 500); // Owncast rebuilds the chat column as chat comes and goes
+  }
+
+  // ---- Pick a name before chatting ------------------------------------------
+  // Optional. People who still have the random name Owncast assigned are asked
+  // to choose one when they go to type. Nothing else on the page is blocked.
+  var needsName = false;
+  var namePrompt = null;
+
+  function checkName() {
+    var t = token();
+    if (!t) return Promise.resolve(null);
+    return fetch(BASE + "/api/me?accessToken=" + encodeURIComponent(t), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (d && d.known) needsName = !!d.needsName;
+        return d;
+      })
+      .catch(function () { return null; });
+  }
+
+  function closeNamePrompt() {
+    if (!namePrompt) return;
+    namePrompt.remove();
+    namePrompt = null;
+  }
+
+  function changeName(newName) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      var ws;
+      try {
+        ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host +
+          "/ws?accessToken=" + encodeURIComponent(token()));
+      } catch (err) { reject(err); return; }
+      var finish = function (ok) {
+        if (done) return;
+        done = true;
+        try { ws.close(); } catch (err) {}
+        if (ok) resolve(); else reject(new Error("no connection"));
+      };
+      ws.addEventListener("open", function () {
+        ws.send(JSON.stringify({ type: "NAME_CHANGE", newName: newName }));
+        setTimeout(function () { finish(true); }, 800);
+      });
+      ws.addEventListener("error", function () { finish(false); });
+      setTimeout(function () { finish(false); }, 6000);
+    });
+  }
+
+  function openNamePrompt() {
+    if (namePrompt) { var f = namePrompt.querySelector("input"); if (f) f.focus(); return; }
+    closePicker();
+    namePrompt = document.createElement("form");
+    namePrompt.id = "chat-tools-name";
+    namePrompt.setAttribute("aria-label", "Choose a chat name");
+    var label = document.createElement("label");
+    label.setAttribute("for", "chat-tools-name-input");
+    label.textContent = "Pick a name to chat";
+    var input = document.createElement("input");
+    input.id = "chat-tools-name-input";
+    input.type = "text";
+    input.maxLength = 30;
+    input.autocomplete = "nickname";
+    input.placeholder = "Your name";
+    var note = document.createElement("div");
+    note.className = "rt-name-note";
+    note.setAttribute("role", "status");
+    var row = document.createElement("div");
+    row.className = "rt-name-actions";
+    var later = document.createElement("button");
+    later.type = "button";
+    later.className = "rt-name-later";
+    later.textContent = "Not now";
+    var save = document.createElement("button");
+    save.type = "submit";
+    save.className = "rt-name-save";
+    save.textContent = "Save name";
+    row.appendChild(later);
+    row.appendChild(save);
+    namePrompt.appendChild(label);
+    namePrompt.appendChild(input);
+    namePrompt.appendChild(note);
+    namePrompt.appendChild(row);
+    later.addEventListener("click", closeNamePrompt);
+    namePrompt.addEventListener("keydown", function (e) { if (e.key === "Escape") closeNamePrompt(); });
+    namePrompt.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = input.value.replace(/\s+/g, " ").trim();
+      if (!name) { note.textContent = "Enter a name first."; input.focus(); return; }
+      save.disabled = true;
+      note.textContent = "Saving...";
+      changeName(name)
+        .then(function () { return checkName(); })
+        .then(function (d) {
+          if (d && d.known && !d.needsName) {
+            closeNamePrompt();
+            refresh();
+            var box = document.getElementById("chat-input-content-editable");
+            if (box) box.focus();
+          } else {
+            save.disabled = false;
+            note.textContent = "That name could not be used. Try a different one.";
+          }
+        })
+        .catch(function () {
+          save.disabled = false;
+          note.textContent = "Could not save the name. Please try again.";
+        });
+    });
+    floater.appendChild(namePrompt);
+    input.focus();
+  }
+
+  function startNamePrompt() {
+    if (!settings.requireName) return;
+    checkName();
+    // The chat identity is created a moment after the page loads.
+    [1500, 4000, 9000].forEach(function (ms) { setTimeout(checkName, ms); });
+    // Typing in the chat box is intercepted while a name is still needed.
+    document.addEventListener("focusin", function (e) {
+      if (!needsName) return;
+      var box = document.getElementById("chat-input-content-editable");
+      if (box && (e.target === box || box.contains(e.target))) {
+        box.blur();
+        openNamePrompt();
+      }
+    });
+    // If they rename themselves through Owncast's own menu, stop asking.
+    setInterval(function () { if (needsName) checkName().then(function () { if (!needsName) closeNamePrompt(); }); }, 15000);
   }
 
   function startExtras() {
@@ -593,8 +723,10 @@
           giphyRating: d.giphyRating || "pg-13",
           allowUploads: !!d.allowUploads,
           maxUploadBytes: d.maxUploadBytes || 0,
+          requireName: !!d.requireName,
         };
         buildToolbar();
+        startNamePrompt();
         previewsActive = settings.inlineImages || !!settings.giphyApiKey || settings.allowUploads;
         if (!previewsActive) return;
         scanChat();
