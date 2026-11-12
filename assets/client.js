@@ -127,7 +127,7 @@
   // image, add a preview under the link. Nothing is sent to the server and
   // the chat message itself is unchanged.
   var previewsActive = false;
-  var settings = { inlineImages: false, imageHosts: [], giphyApiKey: "", giphyRating: "pg-13", allowUploads: false, maxUploadBytes: 0, requireName: false };
+  var settings = { inlineImages: false, imageHosts: [], giphyApiKey: "", giphyRating: "pg-13", allowUploads: false, maxUploadBytes: 0, requireName: false, linkEmbeds: false };
   var IMAGE_EXT = /\.(gif|png|jpe?g|webp|avif)$/i;
   // GIF services whose direct media links have no file extension.
   var MEDIA_HOSTS = /^(media\d*\.giphy\.com|i\.giphy\.com|media\d*\.tenor\.com|c\.tenor\.com)$/i;
@@ -160,9 +160,92 @@
     return null;
   }
 
+  // ---- YouTube and Instagram links ------------------------------------------
+  // Shown as a click-to-load card under the link. Nothing is fetched from
+  // Instagram, and no YouTube player is loaded, until the viewer clicks.
+  function youtubeId(url) {
+    var host = url.hostname.replace(/^(www|m|music)\./, "");
+    var id = "";
+    if (host === "youtu.be") id = url.pathname.slice(1).split("/")[0];
+    else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      var m = /^\/(?:embed|shorts|live|v)\/([^\/?#]+)/.exec(url.pathname);
+      id = m ? m[1] : (url.pathname === "/watch" ? url.searchParams.get("v") || "" : "");
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
+  }
+
+  function instagramPath(url) {
+    if (url.hostname.replace(/^www\./, "") !== "instagram.com") return "";
+    var m = /^\/(p|reel|tv)\/([A-Za-z0-9_-]+)/.exec(url.pathname);
+    return m ? "/" + m[1] + "/" + m[2] : "";
+  }
+
+  function playGlyph() {
+    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", "M8 5.5v13l11-6.5z");
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function embedFrame(src, title, cls) {
+    var frame = document.createElement("iframe");
+    frame.className = cls;
+    frame.title = title;
+    frame.loading = "lazy";
+    frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    frame.allowFullscreen = true;
+    // YouTube refuses to play without a referrer; the site's origin is enough.
+    frame.referrerPolicy = "strict-origin-when-cross-origin";
+    frame.src = src;
+    return frame;
+  }
+
+  function addEmbed(a) {
+    var url;
+    try { url = new URL(a.href, location.href); } catch (err) { return false; }
+    if (url.protocol !== "https:") return false;
+    var yt = youtubeId(url);
+    var ig = yt ? "" : instagramPath(url);
+    if (!yt && !ig) return false;
+
+    var card = document.createElement("div");
+    card.className = "rt-embed " + (yt ? "rt-embed-youtube" : "rt-embed-instagram");
+    var load = document.createElement("button");
+    load.type = "button";
+    load.className = "rt-embed-load";
+    if (yt) {
+      load.setAttribute("aria-label", "Play YouTube video");
+      var thumb = document.createElement("img");
+      thumb.alt = "";
+      thumb.loading = "lazy";
+      thumb.referrerPolicy = "no-referrer";
+      thumb.src = "https://i.ytimg.com/vi/" + yt + "/hqdefault.jpg";
+      load.appendChild(thumb);
+      var badge = document.createElement("span");
+      badge.className = "rt-embed-play";
+      badge.appendChild(playGlyph());
+      load.appendChild(badge);
+    } else {
+      load.textContent = "Show Instagram post";
+    }
+    load.addEventListener("click", function () {
+      var frame = yt
+        ? embedFrame("https://www.youtube-nocookie.com/embed/" + yt + "?autoplay=1", "YouTube video", "rt-embed-frame")
+        : embedFrame("https://www.instagram.com" + ig + "/embed", "Instagram post", "rt-embed-frame");
+      card.replaceChild(frame, load);
+    });
+    card.appendChild(load);
+    a.insertAdjacentElement("afterend", card);
+    return true;
+  }
+
   function addPreview(a) {
     if (a.getAttribute("data-rt-seen")) return;
     a.setAttribute("data-rt-seen", "1");
+    if (settings.linkEmbeds && addEmbed(a)) return;
     var src = imageUrlFor(a);
     if (!src) return;
     var wrap = document.createElement("a");
@@ -724,10 +807,11 @@
           allowUploads: !!d.allowUploads,
           maxUploadBytes: d.maxUploadBytes || 0,
           requireName: !!d.requireName,
+          linkEmbeds: !!d.linkEmbeds,
         };
         buildToolbar();
         startNamePrompt();
-        previewsActive = settings.inlineImages || !!settings.giphyApiKey || settings.allowUploads;
+        previewsActive = settings.inlineImages || settings.linkEmbeds || !!settings.giphyApiKey || settings.allowUploads;
         if (!previewsActive) return;
         scanChat();
         // The chat column is created, destroyed and recycled by Owncast as

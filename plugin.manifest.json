@@ -2,9 +2,9 @@
   "api": "1",
   "name": "Chat Tools",
   "slug": "chat-tools",
-  "version": "0.8.0",
-  "description": "Extras for Owncast chat: a live list of who is in chat, inline image previews, a GIF picker and image uploads.",
-  "category": "other",
+  "version": "0.9.0",
+  "description": "Extras for Owncast chat: a live list of who is in chat, inline image, YouTube and Instagram previews, a GIF picker and image uploads.",
+  "category": "overlays",
   "permissions": [
     "chat.history",
     "users.read",
@@ -25,6 +25,11 @@
       "type": "boolean",
       "default": true,
       "description": "Preview image and GIF links that people paste into chat from other sites. GIFs from the search and uploaded images are always shown, whatever this is set to."
+    },
+    "linkEmbeds": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show YouTube and Instagram links posted in chat as embedded players and posts."
     },
     "gifSearch": {
       "type": "boolean",

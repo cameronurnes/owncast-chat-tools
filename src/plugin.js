@@ -303,6 +303,7 @@ module.exports = definePlugin({
       const rating = String(owncast.config.get("giphyRating", "pg-13") || "pg-13").toLowerCase();
       return json(200, {
         inlineImages: owncast.config.get("inlineImages", true) !== false,
+        linkEmbeds: owncast.config.get("linkEmbeds", true) !== false,
         imageHosts: hosts,
         giphyApiKey:
           owncast.config.get("gifSearch", true) === false

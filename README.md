@@ -4,6 +4,7 @@ An [Owncast](https://owncast.online) plugin with extras for chat. Requires Ownca
 
 - **Who's here:** an "N in chat" button in the page header that lists everyone connected to chat, with moderators marked.
 - **Inline images:** image and GIF links posted in chat show as previews, and open full size in an overlay on the same page.
+- **YouTube and Instagram links:** shown as click-to-load players and posts.
 - **GIF search:** a GIPHY search button inside the chat box (needs a GIPHY API key).
 - **Image upload:** a button inside the chat box to upload a GIF, PNG, JPEG or WebP of up to 10 MB.
 - **Pick a name before chatting (optional):** asks viewers with an auto-generated name to choose one before typing, without blocking the stream.

@@ -28,6 +28,14 @@ When someone posts a link to an image or GIF in chat, a preview appears under th
 
 GIFs chosen from the search and images uploaded through this plugin always show as previews, even with **inlineImages** off. That setting only covers links pasted from other sites.
 
+### YouTube and Instagram links
+
+With **linkEmbeds** on, a YouTube link posted in chat shows the video's thumbnail with a play button, and an Instagram post or reel link shows a "Show Instagram post" button. The player or post loads in place when a viewer clicks.
+
+- Nothing loads from Instagram, and no YouTube player loads, until the viewer clicks. YouTube thumbnails are fetched from YouTube's image server when the message appears.
+- Videos play from YouTube's privacy-enhanced address (`youtube-nocookie.com`).
+- The original link stays visible above the card.
+
 ### GIF picker
 
 With **gifSearch** on and a GIPHY API key set, a GIF button appears inside the chat box, beside the emoji button. It opens a search panel showing trending GIFs, or results as the viewer types. Picking one posts it to chat as that viewer.
