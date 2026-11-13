@@ -94,9 +94,11 @@
     e.stopPropagation();
     setOpen(!open);
   });
+  // Capture phase, so this still runs when another control on the page (such
+  // as another plugin's button) stops the click from bubbling.
   document.addEventListener("click", function (e) {
     if (open && !root.contains(e.target)) setOpen(false);
-  });
+  }, true);
   document.addEventListener("keydown", function (e) {
     if (open && e.key === "Escape") { setOpen(false); button.focus(); }
   });
@@ -106,20 +108,97 @@
   // to line up with the header, so Owncast re-rendering never disturbs it.
   // Owncast only renders the user menu while chat is available, so when it is
   // missing (stream offline, chat disabled) the button is hidden altogether.
+  // Where an element sits according to page layout, ignoring any hover
+  // "grow" effect, which would otherwise nudge things lined up against it.
+  function layoutLeft(node) {
+    var x = 0;
+    for (var n = node; n; n = n.offsetParent) x += n.offsetLeft;
+    return x;
+  }
+
+  // While the page is still loading, the user menu appears and changes size,
+  // so stay invisible until its position has held still for a moment.
+  var lastSpot = "";
+  var steady = 0;
+  var shown = false;
+  var appliedRight = -100;
+  var pendingRight = null;
+  var pendingCount = 0;
+
+  // Notices when a header button itself changes size, as opposed to the whole
+  // page shifting for an instant. Owncast can replace these elements, so each
+  // check makes sure the current ones are being watched.
+  var followUntil = 0;
+  var watched = [];
+  var pointerNearAt = 0;
+
+  // Owncast's own menu button changes size while the pointer is on it or its
+  // menu is open. That is not a real change, so it must not count as one.
+  function menuBusy() {
+    var menu = document.getElementById("user-menu");
+    if (menu && (menu.matches(":hover") || menu.contains(document.activeElement))) pointerNearAt = Date.now();
+    return Date.now() - pointerNearAt < 1200;
+  }
+
+  var sizeWatcher = window.ResizeObserver ? new ResizeObserver(function () {
+    if (menuBusy()) return;
+    followUntil = Date.now() + 700;
+    place();
+  }) : null;
+
+  function watchSize(node) {
+    if (!sizeWatcher || !node || watched.indexOf(node) !== -1) return;
+    sizeWatcher.observe(node);
+    watched.push(node);
+    if (watched.length > 8) sizeWatcher.unobserve(watched.shift());
+  }
+
   function place() {
     var menu = document.getElementById("user-menu");
-    if (!menu) {
+    watchSize(menu);
+    if (!menu || !menu.offsetWidth) {
       if (open) setOpen(false);
       root.hidden = true;
+      steady = 0;
+      lastSpot = "";
+      shown = false;
       return;
     }
     root.hidden = false;
     var header = document.querySelector("header");
     var h = header ? header.getBoundingClientRect() : { top: 0, height: 44 };
     var height = root.offsetHeight || 28;
-    var m = menu.getBoundingClientRect();
-    root.style.top = Math.max(0, h.top + (h.height - height) / 2) + "px";
-    root.style.right = Math.max(8, window.innerWidth - m.left + 8) + "px";
+    var top = Math.max(0, Math.round(h.top + (h.height - height) / 2));
+    var right = Math.max(8, Math.round(document.documentElement.clientWidth - layoutLeft(menu) + 8));
+    // Once in place, only follow a move that is both more than a wobble and
+    // still there three checks in a row. Hovering the header makes its layout
+    // twitch for an instant, and following that made the button jump out and
+    // back.
+    // The exception is when a header button has just changed size (a new name,
+    // a different count) or the window was resized: that is a real change, so
+    // follow it straight away.
+    var urgent = Date.now() < followUntil && !menuBusy();
+    if (shown && urgent) {
+      if (Math.abs(right - appliedRight) <= 3) right = appliedRight;
+      pendingRight = null;
+    } else if (shown) {
+      if (Math.abs(right - appliedRight) <= 3) { pendingRight = null; right = appliedRight; }
+      else if (pendingRight !== null && Math.abs(right - pendingRight) <= 3) {
+        pendingCount++;
+        if (pendingCount < 3) right = appliedRight;
+        else pendingRight = null;
+      } else { pendingRight = right; pendingCount = 1; right = appliedRight; }
+    }
+    appliedRight = right;
+    var spot = right + "," + top;
+    steady = spot === lastSpot ? steady + 1 : 0;
+    lastSpot = spot;
+    root.style.top = top + "px";
+    root.style.right = right + "px";
+    // Once shown it stays shown and simply follows the menu; the menu shifts
+    // by a pixel or two on hover, which must not make the button blink.
+    if (steady >= 2) shown = true;
+    root.style.visibility = shown ? "visible" : "hidden";
   }
 
   // ---- Inline image previews -------------------------------------------
@@ -829,8 +908,8 @@
     place();
     refresh();
     startExtras();
-    window.addEventListener("resize", place);
-    setInterval(place, 1000); // the header changes as chat/login state changes
+    window.addEventListener("resize", function () { followUntil = Date.now() + 700; place(); });
+    setInterval(place, 250); // the header changes as chat/login state changes
     // This viewer's own chat connection is made a moment after the page loads,
     // so the first answer can miss them. Ask again a few times early on, and
     // whenever chat becomes available.

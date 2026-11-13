@@ -2,7 +2,7 @@
   "api": "1",
   "name": "Chat Tools",
   "slug": "chat-tools",
-  "version": "0.9.1",
+  "version": "0.9.7",
   "description": "Extras for Owncast chat: a live list of who is in chat, inline image, YouTube and Instagram previews, a GIF picker and image uploads.",
   "category": "overlays",
   "permissions": [

@@ -1,4 +1,5 @@
 #chat-tools {
+  visibility: hidden;
   position: fixed;
   top: 6px;
   right: 12px;

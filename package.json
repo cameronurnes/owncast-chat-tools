@@ -1,6 +1,6 @@
 {
   "name": "chat-tools",
-  "version": "0.9.1",
+  "version": "0.9.7",
   "private": true,
   "scripts": {
     "build": "owncast-plugin build",
